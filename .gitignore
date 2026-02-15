@@ -1,0 +1,43 @@
+# Virtual Environment
+.venv/
+env/
+
+# IDE Configuration
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Data Files
+/data/
+*.json
+
+# Build Files
+build/
+dist/
+*.egg-info/
+
+# Windows Files
+Thumbs.db
+.DS_Store
+
+# Python Files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test Files
+/test/
+/tests/
+
+# Coverage Files
+.coverage
+.coverage.*
+
+# Documentation Build
+/docs/_build/

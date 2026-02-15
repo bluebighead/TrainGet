@@ -1,0 +1,7 @@
+requests
+beautifulsoup4
+lxml
+PyQt5
+openpyxl
+pandas
+schedule
