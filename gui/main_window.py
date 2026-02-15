@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem, QLabel, QGroupBox, QProgressBar, QStatusBar,
     QMessageBox, QFileDialog
 )
-from PyQt5.QtCore import QDate, Qt, pyqtSignal
+from PyQt5.QtCore import QDate, Qt, pyqtSignal, QMetaObject, Q_ARG
 from PyQt5.QtGui import QFont
 from network.client import client
 from parser.ticket_parser import parser
@@ -754,8 +754,8 @@ class MainWindow(QMainWindow):
             self.update_status.emit("定时查询已停止")
         else:
             # 开始定时查询
-            start_station = self.start_station.text().strip()
-            end_station = self.end_station.text().strip()
+            start_station = self.start_station.currentText().strip()
+            end_station = self.end_station.currentText().strip()
             
             if not start_station or not end_station:
                 QMessageBox.warning(self, "警告", "请输入出发地和目的地")
@@ -763,9 +763,17 @@ class MainWindow(QMainWindow):
             
             # 添加定时任务
             def scheduled_query():
+                # 保存当前查询参数
                 query_date = self.query_date.date().toString("yyyy-MM-dd")
                 train_type = self.train_type.currentText()
-                self.query_tickets(start_station, end_station, query_date, train_type)
+                
+                # 使用QMetaObject.invokeMethod在主线程中执行查询
+                QMetaObject.invokeMethod(self, "query_tickets", 
+                                       Qt.QueuedConnection, 
+                                       Q_ARG(str, start_station),
+                                       Q_ARG(str, end_station),
+                                       Q_ARG(str, query_date),
+                                       Q_ARG(str, train_type))
             
             self.scheduled_task_id = scheduler.add_task(300, scheduled_query)  # 5分钟查询一次
             scheduler.start()
