@@ -40,6 +40,7 @@ class MainWindow(QMainWindow):
     update_result = pyqtSignal(list)
     update_status = pyqtSignal(str)
     update_progress = pyqtSignal(int)
+    update_query_count_signal = pyqtSignal(int)
     
     def __init__(self):
         """初始化主窗口"""
@@ -85,10 +86,14 @@ class MainWindow(QMainWindow):
             'email_password': '',
             'remember_email': False
         }
+        # 查询次数计数器
+        self.query_count = 0
         # 车次数据
         self.all_trains = []
         # 创建自动盯票状态标签
         self.auto_track_status_label = QLabel("自动盯票: 未启动")
+        # 连接信号到槽函数
+        self.update_query_count_signal.connect(self.update_query_count)
         self.auto_track_status_label.setStyleSheet("color: gray;")
         
         # 创建状态栏
@@ -275,11 +280,25 @@ class MainWindow(QMainWindow):
         self.help_button = QPushButton("使用说明")
         self.help_button.clicked.connect(self.show_help)
         
+        # 创建自动盯票按钮
+        self.auto_track_button = QPushButton("自动盯票")
+        self.auto_track_button.clicked.connect(self.show_auto_track_dialog)
+        
+        # 创建查询次数显示标签
+        self.query_count_label = QLabel("查询次数: 0")
+        self.query_count_label.setStyleSheet("font-weight: bold; color: blue;")
+        
         self.clear_logs_button = QPushButton("清理日志")
         self.clear_logs_button.clicked.connect(self.clear_logs)
         # 初始设置为灰色不可选状态
         self.clear_logs_button.setEnabled(False)
         self.clear_logs_button.setStyleSheet("background-color: gray; color: white;")
+        
+        # 创建夜晚模式切换按钮
+        self.night_mode_button = QPushButton("夜晚模式")
+        self.night_mode_button.clicked.connect(self.toggle_night_mode)
+        # 初始化为白天模式
+        self.is_night_mode = False
         
         self.auto_track_button = QPushButton("自动盯票")
         self.auto_track_button.clicked.connect(self.show_auto_track_dialog)
@@ -295,6 +314,9 @@ class MainWindow(QMainWindow):
         control_layout.addWidget(self.clear_button)
         control_layout.addWidget(self.help_button)
         control_layout.addWidget(self.clear_logs_button)
+        control_layout.addWidget(self.night_mode_button)
+        control_layout.addStretch()
+        control_layout.addWidget(self.query_count_label)
         
         control_group.setLayout(control_layout)
         layout.addWidget(control_group)
@@ -397,26 +419,13 @@ class MainWindow(QMainWindow):
             train_type: 车次类型
         """
         try:
+            # 记录查询开始时间
+            query_start_time = time.time()
+            
             self.update_status.emit("正在查询...")
             self.update_progress.emit(20)
             
-            # 首先访问首页，获取cookie和会话信息
-            logger.info("1. 访问12306首页获取会话信息...")
-            index_url = "https://kyfw.12306.cn/"
-            index_response = client.get(index_url)
-            logger.info(f"首页访问成功，状态码: {index_response.status_code}")
-            
-            self.update_progress.emit(30)
-            
-            # 然后访问余票查询页面，获取更多会话信息
-            logger.info("2. 访问余票查询页面获取会话信息...")
-            left_ticket_url = "https://kyfw.12306.cn/otn/leftTicket/init"
-            left_ticket_response = client.get(left_ticket_url)
-            logger.info(f"余票查询页面访问成功，状态码: {left_ticket_response.status_code}")
-            
-            self.update_progress.emit(40)
-            
-            # 获取站点编码
+            # 获取站点编码（使用缓存，避免重复查询）
             from_station = client.get_station_code(start_station)
             to_station = client.get_station_code(end_station)
             
@@ -443,33 +452,9 @@ class MainWindow(QMainWindow):
                 "purpose_codes": "ADULT"
             }
             
-            # 添加额外的请求头，模拟真实浏览器
-            extra_headers = {
-                "Referer": "https://kyfw.12306.cn/otn/leftTicket/init",
-                "X-Requested-With": "XMLHttpRequest",
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "same-origin"
-            }
-            
-            # 随机等待一段时间，增加随机性
-            import time
-            import random
-            time.sleep(random.uniform(2, 4))
-            
             # 发送请求，使用最大重试次数
             try:
-                response = client.get(url, params=params, headers=extra_headers, max_retries=3)
-                
-                # 保存响应内容到文件，以便调试
-                import os
-                # 确保debug文件夹存在
-                if not os.path.exists('debug'):
-                    os.makedirs('debug')
-                debug_file = f"debug/debug_gui_{start_station}_{end_station}_{query_date}.html"
-                with open(debug_file, 'w', encoding='utf-8') as f:
-                    f.write(response.text)
-                logger.info(f"响应内容已保存到 {debug_file}")
+                response = client.get(url, params=params, max_retries=3)
                 
                 # 解析JSON结果
                 import json
@@ -591,16 +576,36 @@ class MainWindow(QMainWindow):
                             filtered_tickets.append(ticket)
                     tickets = filtered_tickets
                 
+                # 计算查询用时
+                end_time = time.time()
+                query_time = end_time - query_start_time
+                
                 self.update_progress.emit(80)
                 self.update_result.emit(tickets)
-                self.update_status.emit(f"查询完成，找到 {len(tickets)} 条记录")
+                
+                # 显示查询用时
+                logger.info(f"查询用时: {query_time:.2f} 秒")
+                self.status_bar.showMessage(f"查询完成，用时: {query_time:.2f} 秒")
+                self.update_status.emit(f"查询完成，找到 {len(tickets)} 条记录，用时: {query_time:.2f} 秒")
             except Exception as e:
+                # 计算查询用时
+                end_time = time.time()
+                query_time = end_time - query_start_time
+                
                 logger.error(f"处理查询结果失败: {e}")
-                self.update_status.emit("处理查询结果失败")
+                logger.info(f"查询用时: {query_time:.2f} 秒")
+                self.status_bar.showMessage(f"处理查询结果失败，用时: {query_time:.2f} 秒")
+                self.update_status.emit(f"处理查询结果失败，用时: {query_time:.2f} 秒")
                 self.update_result.emit([])
         except Exception as e:
+            # 计算查询用时
+            end_time = time.time()
+            query_time = end_time - query_start_time
+            
             logger.error(f"查询失败: {e}")
-            self.update_status.emit(f"查询失败: {str(e)}")
+            logger.info(f"查询用时: {query_time:.2f} 秒")
+            self.status_bar.showMessage(f"查询失败，用时: {query_time:.2f} 秒")
+            self.update_status.emit(f"查询失败: {str(e)}，用时: {query_time:.2f} 秒")
         finally:
             self.update_progress.emit(100)
             # 隐藏进度条
@@ -616,6 +621,9 @@ class MainWindow(QMainWindow):
             query_date: 查询日期
         """
         try:
+            # 记录查询开始时间
+            query_start_time = time.time()
+            
             self.update_status.emit("正在查询中转车次...")
             self.update_progress.emit(20)
             
@@ -674,6 +682,10 @@ class MainWindow(QMainWindow):
             # 保存中转方案到实例变量，以便在主线程中访问
             self.transfer_plans_to_display = transfer_plans
             
+            # 计算查询用时
+            end_time = time.time()
+            query_time = end_time - query_start_time
+            
             # 在主线程中显示结果
             from PyQt5.QtCore import QTimer
             
@@ -687,12 +699,21 @@ class MainWindow(QMainWindow):
                 import traceback
                 traceback.print_exc()
             
-            self.update_status.emit(f"查询完成，找到 {len(transfer_plans)} 个中转方案")
+            # 显示查询用时
+            logger.info(f"查询用时: {query_time:.2f} 秒")
+            self.status_bar.showMessage(f"查询完成，用时: {query_time:.2f} 秒")
+            self.update_status.emit(f"查询完成，找到 {len(transfer_plans)} 个中转方案，用时: {query_time:.2f} 秒")
             self.update_progress.emit(100)
             
         except Exception as e:
+            # 计算查询用时
+            end_time = time.time()
+            query_time = end_time - query_start_time
+            
             logger.error(f"查询中转车次失败: {e}")
-            self.update_status.emit(f"查询失败: {str(e)}")
+            logger.info(f"查询用时: {query_time:.2f} 秒")
+            self.status_bar.showMessage(f"查询失败，用时: {query_time:.2f} 秒")
+            self.update_status.emit(f"查询失败: {str(e)}，用时: {query_time:.2f} 秒")
             # 隐藏进度条
             QTimer.singleShot(0, lambda: self.progress_bar.setVisible(False))
         else:
@@ -1301,10 +1322,12 @@ class MainWindow(QMainWindow):
         self.start_track_button = QPushButton("开始盯票")
         self.stop_track_button = QPushButton("停止盯票")
         
-        # 根据当前状态设置按钮状态
+        # 根据当前状态设置按钮状态和配置控件状态
         if self.auto_track_running:
             self.start_track_button.setEnabled(False)
             self.stop_track_button.setEnabled(True)
+            # 禁用所有配置控件
+            self.disable_config_controls()
         else:
             self.start_track_button.setEnabled(True)
             self.stop_track_button.setEnabled(False)
@@ -1661,6 +1684,15 @@ class MainWindow(QMainWindow):
         
         # 配置会在程序退出时自动保存到 settings.json 文件中
         
+        # 禁用所有配置控件
+        self.disable_config_controls()
+        
+        # 重置查询计数器
+        self.query_count = 0
+        
+        # 使用信号触发查询次数更新
+        self.update_query_count_signal.emit(self.query_count)
+        
         # 启动盯票线程
         self.auto_track_running = True
         self.auto_track_thread = threading.Thread(
@@ -1691,6 +1723,10 @@ class MainWindow(QMainWindow):
         self.auto_track_running = False
         if self.auto_track_thread:
             self.auto_track_thread.join(timeout=5)
+        
+        # 启用所有配置控件
+        if hasattr(self, 'enable_config_controls'):
+            self.enable_config_controls()
         
         # 更新状态
         self.update_auto_track_status()
@@ -1803,6 +1839,14 @@ class MainWindow(QMainWindow):
         
         while self.auto_track_running:
             try:
+                # 增加查询计数
+                self.query_count += 1
+                current_count = self.query_count
+                logger.info(f"执行第 {current_count} 次自动查询")
+                
+                # 使用信号触发查询次数更新
+                self.update_query_count_signal.emit(current_count)
+                
                 # 获取站点编码
                 from_station = client.get_station_code(start_station)
                 to_station = client.get_station_code(end_station)
@@ -1902,6 +1946,14 @@ class MainWindow(QMainWindow):
                             # 发现余票后自动停止盯票
                             logger.info("发现余票，自动停止盯票任务")
                             self.auto_track_running = False
+                            
+                            # 启用所有配置控件
+                            def enable_controls():
+                                if hasattr(self, 'enable_config_controls'):
+                                    self.enable_config_controls()
+                            
+                            # 在主线程中启用配置控件
+                            QTimer.singleShot(0, enable_controls)
                             
                             # 发送事件更新状态
                             class StatusUpdateEvent(QEvent):
@@ -2143,6 +2195,16 @@ class MainWindow(QMainWindow):
                 if 'auto_track_config' in settings:
                     self.auto_track_config.update(settings['auto_track_config'])
                 
+                # 加载夜晚模式设置
+                if 'night_mode' in settings:
+                    self.is_night_mode = settings['night_mode']
+                    if self.is_night_mode:
+                        self.night_mode_button.setText("白天模式")
+                        self.apply_night_mode()
+                    else:
+                        self.night_mode_button.setText("夜晚模式")
+                        self.apply_day_mode()
+                
                 logger.info("成功加载保存的设置")
             except Exception as e:
                 logger.error(f"加载设置失败: {e}")
@@ -2163,7 +2225,8 @@ class MainWindow(QMainWindow):
             'end_station': self.end_station.currentText(),
             'query_date': self.query_date.date().toString('yyyy-MM-dd'),
             'train_type': self.train_type.currentText(),
-            'auto_track_config': self.auto_track_config
+            'auto_track_config': self.auto_track_config,
+            'night_mode': self.is_night_mode
         }
         
         settings_file = 'settings.json'
@@ -2186,6 +2249,65 @@ class MainWindow(QMainWindow):
         self.email_password_edit.setEnabled(enabled)
         self.remember_email_checkbox.setEnabled(enabled)
     
+    def disable_config_controls(self):
+        """
+        禁用所有配置控件
+        """
+        # 禁用车类型复选框
+        for checkbox in self.train_type_checkboxes.values():
+            checkbox.setEnabled(False)
+        
+        # 禁用座位等级复选框
+        for checkbox in self.seat_class_checkboxes.values():
+            checkbox.setEnabled(False)
+        
+        # 禁用查询间隔设置
+        self.interval_spinbox.setEnabled(False)
+        
+        # 禁用邮箱相关控件
+        self.email_alert_checkbox.setEnabled(False)
+        self.email_address_edit.setEnabled(False)
+        self.email_password_edit.setEnabled(False)
+        self.remember_email_checkbox.setEnabled(False)
+        
+        # 禁用车次表格
+        if hasattr(self, 'train_table'):
+            self.train_table.setEnabled(False)
+    
+    def enable_config_controls(self):
+        """
+        启用所有配置控件
+        """
+        # 启用车类型复选框
+        for checkbox in self.train_type_checkboxes.values():
+            checkbox.setEnabled(True)
+        
+        # 启用座位等级复选框
+        for checkbox in self.seat_class_checkboxes.values():
+            checkbox.setEnabled(True)
+        
+        # 启用查询间隔设置
+        self.interval_spinbox.setEnabled(True)
+        
+        # 启用邮箱相关控件
+        self.email_alert_checkbox.setEnabled(True)
+        # 根据邮箱提醒是否启用，设置其他邮箱控件的启用状态
+        self.toggle_email_fields(self.email_alert_checkbox.checkState())
+        
+        # 启用车次表格
+        if hasattr(self, 'train_table'):
+            self.train_table.setEnabled(True)
+    
+    def update_query_count(self, count):
+        """
+        更新查询次数显示
+        
+        Args:
+            count: 查询次数
+        """
+        if hasattr(self, 'query_count_label'):
+            self.query_count_label.setText(f"查询次数: {count}")
+    
     def show_help(self):
         """
         显示使用说明
@@ -2205,6 +2327,18 @@ class MainWindow(QMainWindow):
    - 只能盯直达票，中转票不支持
    - 自动查询间隔不能低于30秒
    - 可配置邮箱提醒功能，当发现余票时发送邮件通知
+   - 自动盯票启动后，主界面会实时显示查询次数
+   - 配置步骤：
+     a. 选择需要监控的车类型（可多选）
+     b. 选择需要监控的座位等级（可多选）
+     c. 设置查询间隔（不能低于30秒）
+     d. 可选择性地选择特定车次进行监控
+     e. 配置邮箱提醒功能（可选）：
+        - 勾选"启用邮箱提醒"
+        - 输入邮箱地址
+        - 输入邮箱授权码（不是登录密码）
+        - 勾选"记住邮箱配置"以保存邮箱信息
+     f. 点击"开始盯票"按钮启动自动盯票
 9. 查询结果可以导出为Excel或CSV格式
 
 注意事项：
@@ -2213,11 +2347,13 @@ class MainWindow(QMainWindow):
 - 自动盯票功能的查询间隔不能低于30秒，以防止对12306服务器造成负担
 - 邮箱提醒功能需要使用邮箱授权码，而不是登录密码
 - 如遇查询失败，请检查网络连接后重试
+- 自动盯票启动后，配置窗口中的设置会变为不可选状态，直到停止盯票或盯票成功
+- 当发现余票时，软件会弹出通知，并在开启邮箱提醒的情况下发送邮件通知
 
 版本信息：
-- 版本：V1.0.1
+- 版本：V1.0.2
 - 发布日期：2026-02-16
-- 功能：直达车次查询、中转车次查询、自动盯票、邮箱提醒、网络检测
+- 功能：直达车次查询、中转车次查询、自动盯票、邮箱提醒、网络检测、查询次数实时更新
         """
         QMessageBox.information(self, "使用说明", help_message)
     
@@ -2300,3 +2436,152 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"清理日志时出错: {e}")
             QMessageBox.critical(self, "错误", f"清理日志时出错: {e}")
+    
+    def toggle_night_mode(self):
+        """
+        切换白天/夜晚模式
+        """
+        # 切换夜晚模式标志
+        self.is_night_mode = not self.is_night_mode
+        
+        # 更新按钮文本
+        if self.is_night_mode:
+            self.night_mode_button.setText("白天模式")
+            # 应用夜晚模式样式
+            self.apply_night_mode()
+        else:
+            self.night_mode_button.setText("夜晚模式")
+            # 应用白天模式样式
+            self.apply_day_mode()
+    
+    def apply_night_mode(self):
+        """
+        应用夜晚模式样式
+        """
+        # 主窗口背景
+        self.setStyleSheet('''.QMainWindow {
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+        }
+        
+        QGroupBox {
+            background-color: #3c3c3c;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 10px;
+            padding: 0 5px 0 5px;
+            color: #e0e0e0;
+        }
+        
+        QLabel {
+            color: #e0e0e0;
+        }
+        
+        QPushButton {
+            background-color: #4a4a4a;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 3px;
+            padding: 5px 10px;
+        }
+        
+        QPushButton:hover {
+            background-color: #5a5a5a;
+        }
+        
+        QPushButton:pressed {
+            background-color: #6a6a6a;
+        }
+        
+        QPushButton:disabled {
+            background-color: #333;
+            color: #888;
+        }
+        
+        QLineEdit, QComboBox, QDateEdit, QSpinBox {
+            background-color: #3c3c3c;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 3px;
+            padding: 3px 5px;
+        }
+        
+        QTableWidget {
+            background-color: #3c3c3c;
+            color: #e0e0e0;
+            border: 1px solid #555;
+        }
+        
+        QTableWidget::item {
+            background-color: #3c3c3c;
+            color: #e0e0e0;
+        }
+        
+        QTableWidget::item:selected {
+            background-color: #5a5a5a;
+            color: #e0e0e0;
+        }
+        
+        QHeaderView::section {
+            background-color: #4a4a4a;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            padding: 5px;
+        }
+        
+        QProgressBar {
+            background-color: #3c3c3c;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 3px;
+        }
+        
+        QProgressBar::chunk {
+            background-color: #4CAF50;
+        }
+        
+        QStatusBar {
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+            border-top: 1px solid #555;
+        }
+        
+        QCheckBox {
+            color: #e0e0e0;
+        }
+        ''')
+        
+        # 更新查询次数标签样式
+        self.query_count_label.setStyleSheet("font-weight: bold; color: #4CAF50;")
+        
+        # 更新检测网络按钮样式
+        if hasattr(self, 'test_network_button'):
+            if "background-color: green" in self.test_network_button.styleSheet():
+                self.test_network_button.setStyleSheet("background-color: #4CAF50; color: white;")
+            elif "background-color: purple" in self.test_network_button.styleSheet():
+                self.test_network_button.setStyleSheet("background-color: #9c27b0; color: white;")
+    
+    def apply_day_mode(self):
+        """
+        应用白天模式样式
+        """
+        # 重置为默认样式
+        self.setStyleSheet("")
+        
+        # 更新查询次数标签样式
+        self.query_count_label.setStyleSheet("font-weight: bold; color: blue;")
+        
+        # 更新检测网络按钮样式
+        if hasattr(self, 'test_network_button'):
+            if "background-color: #4CAF50" in self.test_network_button.styleSheet():
+                self.test_network_button.setStyleSheet("background-color: green; color: white;")
+            elif "background-color: #9c27b0" in self.test_network_button.styleSheet():
+                self.test_network_button.setStyleSheet("background-color: purple; color: white;")
+            else:
+                self.test_network_button.setStyleSheet("background-color: red; color: white;")
