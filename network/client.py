@@ -17,13 +17,18 @@ logger = setup_logger()
 class NetworkClient:
     """网络请求客户端，包含反爬机制"""
     
-    # 常见的User-Agent列表
+    # 常见的User-Agent列表（更丰富、更真实）
     USER_AGENTS = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.70"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.0.0",
+        "Mozilla/5.0 (Linux; Android 13; SM-G998U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36"
     ]
     
     def __init__(self, base_url="https://kyfw.12306.cn", timeout=30):
@@ -38,7 +43,7 @@ class NetworkClient:
         self.timeout = timeout
         self.session = requests.Session()
         self.last_request_time = 0
-        self.min_interval = 2  # 最小请求间隔（秒）
+        self.min_interval = 3  # 最小请求间隔（秒），增加到3秒
         # 使用station_parser获取站点信息
         logger.info(f"已加载 {len(station_parser.get_all_stations())} 个站点信息")
         # 初始化会话，访问首页获取Cookie
@@ -54,18 +59,30 @@ class NetworkClient:
         """
         try:
             logger.info("1. 访问12306首页获取会话信息...")
-            index_url = "https://kyfw.12306.cn/otn/"
+            index_url = "https://kyfw.12306.cn/"
             headers = {
                 "User-Agent": self._get_random_user_agent(),
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
                 "Accept-Language": "zh-CN,zh;q=0.9",
                 "Accept-Encoding": "gzip, deflate, br",
                 "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1"
+                "Upgrade-Insecure-Requests": "1",
+                "Cache-Control": "max-age=0",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1",
+                "Sec-Ch-Ua": "\"Google Chrome\";v=\"111\", \"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"111\"",
+                "Sec-Ch-Ua-Mobile": "?0",
+                "Sec-Ch-Ua-Platform": "\"Windows\"",
+                "DNT": "1"
             }
             response = self.session.get(index_url, headers=headers, timeout=self.timeout)
             response.raise_for_status()
             logger.info(f"首页访问成功，状态码: {response.status_code}")
+            
+            # 随机等待一段时间
+            time.sleep(random.uniform(1, 2))
             
             # 访问余票查询页面
             logger.info("2. 访问余票查询页面获取Cookie...")
@@ -107,27 +124,68 @@ class NetworkClient:
                 # 等待请求间隔
                 self._wait_for_interval()
                 
-                # 构建请求头
-                default_headers = {
-                    "User-Agent": self._get_random_user_agent(),
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                    "Accept-Language": "zh-CN,zh;q=0.9",
-                    "Accept-Encoding": "gzip, deflate, br",
-                    "Connection": "keep-alive",
-                    "Upgrade-Insecure-Requests": "1",
-                    "Cache-Control": "max-age=0",
-                    "Sec-Fetch-Dest": "document",
-                    "Sec-Fetch-Mode": "navigate",
-                    "Sec-Fetch-Site": "none",
-                    "Sec-Fetch-User": "?1",
-                    "Sec-Ch-Ua": "\"Google Chrome\";v=\"111\", \"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"111\"",
-                    "Sec-Ch-Ua-Mobile": "?0",
-                    "Sec-Ch-Ua-Platform": "\"Windows\"",
-                    "DNT": "1",
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Referer": "https://kyfw.12306.cn/",
-                    "Origin": "https://kyfw.12306.cn"
-                }
+                # 根据URL类型设置不同的请求头
+                if "leftTicket/query" in url:
+                    # JSON接口的请求头
+                    # 生成随机的Sec-Ch-Ua值
+                    sec_ch_ua = f'"Google Chrome";v="{random.randint(110, 120)}", "Not(A:Brand";v="8", "Chromium";v="{random.randint(110, 120)}"'
+                    
+                    default_headers = {
+                        "User-Agent": self._get_random_user_agent(),
+                        "Accept": "application/json, text/javascript, */*; q=0.01",
+                        "Accept-Language": "zh-CN,zh;q=0.9",
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "Connection": "keep-alive",
+                        "Cache-Control": "max-age=0",
+                        "Sec-Fetch-Dest": "empty",
+                        "Sec-Fetch-Mode": "cors",
+                        "Sec-Fetch-Site": "same-origin",
+                        "Sec-Ch-Ua": sec_ch_ua,
+                        "Sec-Ch-Ua-Mobile": "?0",
+                        "Sec-Ch-Ua-Platform": "\"Windows\"",
+                        "DNT": "1",
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Referer": "https://kyfw.12306.cn/otn/leftTicket/init",
+                        "Origin": "https://kyfw.12306.cn",
+                        # 添加更多浏览器指纹相关的请求头
+                        "Sec-Ch-Ua-Arch": "\"x86\"",
+                        "Sec-Ch-Ua-Bitness": "\"64\"",
+                        "Sec-Ch-Ua-Full-Version": f'\"{random.randint(110, 120)}.0.{random.randint(1, 9999)}.{random.randint(1, 999)}\"',
+                        "Sec-Ch-Ua-Full-Version-List": f'\"Google Chrome\";v=\"{random.randint(110, 120)}.0.{random.randint(1, 9999)}.{random.randint(1, 999)}\", \"Not(A:Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"{random.randint(110, 120)}.0.{random.randint(1, 9999)}.{random.randint(1, 999)}\"',
+                        "Sec-Ch-Ua-Model": "\"\"",
+                        "Sec-Ch-Ua-Wow64": "?0",
+                        "TE": "trailers"
+                    }
+                else:
+                    # 普通HTML页面的请求头
+                    # 生成随机的Sec-Ch-Ua值
+                    sec_ch_ua = f'"Google Chrome";v="{random.randint(110, 120)}", "Not(A:Brand";v="8", "Chromium";v="{random.randint(110, 120)}"'
+                    
+                    default_headers = {
+                        "User-Agent": self._get_random_user_agent(),
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                        "Accept-Language": "zh-CN,zh;q=0.9",
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "Connection": "keep-alive",
+                        "Upgrade-Insecure-Requests": "1",
+                        "Cache-Control": "max-age=0",
+                        "Sec-Fetch-Dest": "document",
+                        "Sec-Fetch-Mode": "navigate",
+                        "Sec-Fetch-Site": "none",
+                        "Sec-Fetch-User": "?1",
+                        "Sec-Ch-Ua": sec_ch_ua,
+                        "Sec-Ch-Ua-Mobile": "?0",
+                        "Sec-Ch-Ua-Platform": "\"Windows\"",
+                        "DNT": "1",
+                        # 添加更多浏览器指纹相关的请求头
+                        "Sec-Ch-Ua-Arch": "\"x86\"",
+                        "Sec-Ch-Ua-Bitness": "\"64\"",
+                        "Sec-Ch-Ua-Full-Version": f'\"{random.randint(110, 120)}.0.{random.randint(1, 9999)}.{random.randint(1, 999)}\"',
+                        "Sec-Ch-Ua-Full-Version-List": f'\"Google Chrome\";v=\"{random.randint(110, 120)}.0.{random.randint(1, 9999)}.{random.randint(1, 999)}\", \"Not(A:Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"{random.randint(110, 120)}.0.{random.randint(1, 9999)}.{random.randint(1, 999)}\"',
+                        "Sec-Ch-Ua-Model": "\"\"",
+                        "Sec-Ch-Ua-Wow64": "?0",
+                        "TE": "trailers"
+                    }
                 
                 if headers:
                     default_headers.update(headers)
@@ -146,6 +204,20 @@ class NetworkClient:
                 # 检查响应状态
                 response.raise_for_status()
                 
+                # 检查响应是否为HTML页面（可能是反爬）
+                if "leftTicket/query" in url and "DOCTYPE html" in response.text:
+                    logger.error(f"12306返回了HTML页面，可能是反爬，重试次数: {retry+1}/{max_retries}")
+                    if retry < max_retries - 1:
+                        logger.info(f"正在重试... ({retry+2}/{max_retries})")
+                        # 增加等待时间，随着重试次数增加而增加
+                        wait_time = random.uniform(3 + retry, 6 + retry)
+                        time.sleep(wait_time)
+                        # 重新初始化会话，包括访问首页和余票查询页面
+                        self._init_session()
+                        continue
+                    else:
+                        raise Exception("12306返回了HTML页面，反爬机制触发")
+                
                 logger.info(f"请求成功: {url}, 状态码: {response.status_code}")
                 return response
                 
@@ -154,10 +226,10 @@ class NetworkClient:
                 if retry < max_retries - 1:
                     logger.info(f"正在重试... ({retry+2}/{max_retries})")
                     # 增加等待时间，随着重试次数增加而增加
-                    wait_time = random.uniform(2 + retry, 4 + retry)
+                    wait_time = random.uniform(3 + retry, 6 + retry)
                     time.sleep(wait_time)
-                    # 重新创建会话，避免使用被封禁的会话
-                    self.session = requests.Session()
+                    # 重新初始化会话，包括访问首页和余票查询页面
+                    self._init_session()
                 else:
                     raise
     
