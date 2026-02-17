@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QLineEdit, QDateEdit, QComboBox, QPushButton, QTableWidget, 
     QTableWidgetItem, QLabel, QGroupBox, QProgressBar, QStatusBar,
     QMessageBox, QFileDialog, QTextEdit, QFrame, QDialog, QCheckBox, QSpinBox,
-    QHeaderView, QApplication
+    QHeaderView, QApplication, QCompleter
 )
 from PyQt5.QtCore import QDate, Qt, pyqtSignal, QMetaObject, Q_ARG, QTimer, QEvent
 from PyQt5.QtGui import QFont
@@ -48,7 +48,158 @@ class MainWindow(QMainWindow):
         
         # 设置窗口属性
         self.setWindowTitle("车票自动获取工具V1.0")
-        self.setGeometry(100, 100, 1000, 700)
+        self.setGeometry(100, 100, 1080, 768)
+        
+        # 设置全局样式
+        self.setStyleSheet("""
+            /* 主窗口背景 */
+            QMainWindow {
+                background-color: #f5f5f5;
+            }
+            
+            /* 标签样式 */
+            QLabel {
+                font-size: 14px;
+                color: #333333;
+            }
+            
+            /* 标题标签 */
+            QLabel#title_label {
+                font-size: 20px;
+                font-weight: bold;
+                color: #1E88E5;
+            }
+            
+            /* 按钮样式 */
+            QPushButton {
+                background-color: #1E88E5;
+                color: white;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-size: 14px;
+                border: none;
+            }
+            
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            
+            QPushButton:pressed {
+                background-color: #1565C0;
+            }
+            
+            QPushButton:disabled {
+                background-color: #BDBDBD;
+            }
+            
+            /* 输入框样式 */
+            QLineEdit, QComboBox, QDateEdit, QSpinBox {
+                border: 1px solid #DDDDDD;
+                border-radius: 4px;
+                padding: 6px 10px;
+                font-size: 14px;
+                background-color: white;
+            }
+            
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QSpinBox:focus {
+                border-color: #1E88E5;
+                outline: none;
+            }
+            
+            /* 复选框样式 */
+            QCheckBox {
+                font-size: 14px;
+                color: #333333;
+            }
+            
+            /* 分组框样式 */
+            QGroupBox {
+                border: 1px solid #DDDDDD;
+                border-radius: 4px;
+                margin-top: 10px;
+                padding: 10px;
+                background-color: white;
+            }
+            
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 10px;
+                background-color: white;
+                color: #1E88E5;
+                font-weight: bold;
+            }
+            
+            /* 表格样式 */
+            QTableWidget {
+                border: 1px solid #DDDDDD;
+                border-radius: 4px;
+                background-color: white;
+                alternate-background-color: #F5F5F5;
+            }
+            
+            QTableWidget::item {
+                padding: 8px;
+                font-size: 13px;
+            }
+            
+            QTableWidget::item:selected {
+                background-color: #E3F2FD;
+                color: #1565C0;
+            }
+            
+            /* 滚动条样式 */
+            QScrollBar:vertical {
+                border: none;
+                background: #F5F5F5;
+                width: 10px;
+                margin: 0px;
+            }
+            
+            QScrollBar::handle:vertical {
+                background: #BDBDBD;
+                border-radius: 5px;
+            }
+            
+            QScrollBar::handle:vertical:hover {
+                background: #9E9E9E;
+            }
+            
+            QScrollBar:horizontal {
+                border: none;
+                background: #F5F5F5;
+                height: 10px;
+                margin: 0px;
+            }
+            
+            QScrollBar::handle:horizontal {
+                background: #BDBDBD;
+                border-radius: 5px;
+            }
+            
+            QScrollBar::handle:horizontal:hover {
+                background: #9E9E9E;
+            }
+            
+            /* 进度条样式 */
+            QProgressBar {
+                border: 1px solid #DDDDDD;
+                border-radius: 4px;
+                background-color: #F5F5F5;
+                text-align: center;
+            }
+            
+            QProgressBar::chunk {
+                background-color: #1E88E5;
+                border-radius: 3px;
+            }
+            
+            /* 状态栏样式 */
+            QStatusBar {
+                background-color: white;
+                border-top: 1px solid #DDDDDD;
+            }
+        """)
         
         # 初始化变量
         self.query_results = []
@@ -126,28 +277,46 @@ class MainWindow(QMainWindow):
         Args:
             layout: 父布局
         """
+        # 创建标题标签
+        title_label = QLabel("12306 余票查询")
+        title_label.setObjectName("title_label")
+        title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title_label)
+        
         # 创建查询条件组
         query_group = QGroupBox("查询条件")
         query_layout = QFormLayout()
+        
+        # 设置布局间距
+        query_layout.setContentsMargins(20, 15, 20, 15)
+        query_layout.setVerticalSpacing(15)
         
         # 创建控件
         # 出发地选择（二级联动）
         self.start_city = QComboBox()
         self.start_city.setEditable(True)
         self.start_city.setPlaceholderText("如：北京")
+        self.start_city.setInsertPolicy(QComboBox.NoInsert)
+        self.start_city.setMinimumWidth(120)
         
         self.start_station = QComboBox()
         self.start_station.setEditable(True)
         self.start_station.setPlaceholderText("如：北京站")
+        self.start_station.setInsertPolicy(QComboBox.NoInsert)
+        self.start_station.setMinimumWidth(200)
         
         # 目的地选择（二级联动）
         self.end_city = QComboBox()
         self.end_city.setEditable(True)
         self.end_city.setPlaceholderText("如：上海")
+        self.end_city.setInsertPolicy(QComboBox.NoInsert)
+        self.end_city.setMinimumWidth(120)
         
         self.end_station = QComboBox()
         self.end_station.setEditable(True)
         self.end_station.setPlaceholderText("如：上海虹桥")
+        self.end_station.setInsertPolicy(QComboBox.NoInsert)
+        self.end_station.setMinimumWidth(200)
         
         # 添加城市列表
         cities = station_parser.get_cities()
@@ -156,6 +325,15 @@ class MainWindow(QMainWindow):
         for city in cities:
             self.start_city.addItem(city)
             self.end_city.addItem(city)
+        
+        # 为城市下拉框添加自动补全
+        start_city_completer = QCompleter(cities)
+        start_city_completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.start_city.setCompleter(start_city_completer)
+        
+        end_city_completer = QCompleter(cities)
+        end_city_completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.end_city.setCompleter(end_city_completer)
         
         # 实现城市和站点的联动
         self.start_city.currentTextChanged.connect(self.on_start_city_changed)
@@ -172,23 +350,36 @@ class MainWindow(QMainWindow):
             
             for station in end_stations:
                 self.end_station.addItem(station)
+            
+            # 为站点下拉框添加自动补全
+            start_station_completer = QCompleter(start_stations)
+            start_station_completer.setCaseSensitivity(Qt.CaseInsensitive)
+            self.start_station.setCompleter(start_station_completer)
+            
+            end_station_completer = QCompleter(end_stations)
+            end_station_completer.setCaseSensitivity(Qt.CaseInsensitive)
+            self.end_station.setCompleter(end_station_completer)
         
         self.query_date = QDateEdit()
         self.query_date.setDate(QDate.currentDate())
         self.query_date.setCalendarPopup(True)
+        self.query_date.setMinimumWidth(150)
         
         self.train_type = QComboBox()
         self.train_type.addItems(["全部", "高铁", "动车", "普通列车"])
+        self.train_type.setMinimumWidth(120)
         
         # 创建水平布局用于放置城市和站点选择框
         start_layout = QHBoxLayout()
         start_layout.addWidget(self.start_city)
+        start_layout.addSpacing(10)
         start_layout.addWidget(self.start_station)
         start_layout.setStretch(0, 1)
         start_layout.setStretch(1, 2)
         
         end_layout = QHBoxLayout()
         end_layout.addWidget(self.end_city)
+        end_layout.addSpacing(10)
         end_layout.addWidget(self.end_station)
         end_layout.setStretch(0, 1)
         end_layout.setStretch(1, 2)
@@ -201,6 +392,7 @@ class MainWindow(QMainWindow):
         
         query_group.setLayout(query_layout)
         layout.addWidget(query_group)
+        layout.addSpacing(10)
     
     def create_result_section(self, layout):
         """
@@ -212,6 +404,10 @@ class MainWindow(QMainWindow):
         # 创建结果组
         result_group = QGroupBox("查询结果")
         result_layout = QVBoxLayout()
+        
+        # 设置布局间距
+        result_layout.setContentsMargins(15, 15, 15, 15)
+        result_layout.setSpacing(10)
         
         # 创建表格
         self.result_table = QTableWidget()
@@ -227,11 +423,27 @@ class MainWindow(QMainWindow):
         self.result_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         # 设置表格水平滚动条策略
         self.result_table.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        # 设置表格样式
+        self.result_table.setAlternatingRowColors(True)
+        self.result_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.result_table.setSelectionMode(QTableWidget.SingleSelection)
+        # 设置表头样式
+        header = self.result_table.horizontalHeader()
+        header.setStyleSheet("""
+            QHeaderView::section {
+                background-color: #E3F2FD;
+                color: #1565C0;
+                font-weight: bold;
+                padding: 8px;
+                border: 1px solid #DDDDDD;
+            }
+        """)
         
         # 创建进度条
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(False)
+        self.progress_bar.setMinimumHeight(20)
         
         # 添加到布局
         result_layout.addWidget(self.result_table)
@@ -239,6 +451,7 @@ class MainWindow(QMainWindow):
         
         result_group.setLayout(result_layout)
         layout.addWidget(result_group)
+        layout.addSpacing(10)
     
     def create_control_section(self, layout):
         """
@@ -249,74 +462,106 @@ class MainWindow(QMainWindow):
         """
         # 创建控制组
         control_group = QGroupBox("操作控制")
-        control_layout = QHBoxLayout()
+        control_layout = QVBoxLayout()
+        
+        # 设置布局间距
+        control_layout.setContentsMargins(15, 15, 15, 15)
+        control_layout.setSpacing(10)
+        
+        # 创建按钮行
+        button_layout1 = QHBoxLayout()
+        button_layout2 = QHBoxLayout()
+        info_layout = QHBoxLayout()
         
         # 创建按钮
         self.query_button = QPushButton("立即查询")
         self.query_button.clicked.connect(self.start_query)
+        self.query_button.setMinimumWidth(100)
         
         self.schedule_button = QPushButton("定时查询")
         self.schedule_button.clicked.connect(self.toggle_schedule)
+        self.schedule_button.setMinimumWidth(100)
         
         self.transfer_button = QPushButton("查询中转车次")
         self.transfer_button.clicked.connect(self.start_transfer_query)
+        self.transfer_button.setMinimumWidth(120)
         
         self.test_network_button = QPushButton("检测网络")
         self.test_network_button.clicked.connect(self.test_network)
         # 设置默认颜色为红色
-        self.test_network_button.setStyleSheet("background-color: red; color: white;")
+        self.test_network_button.setStyleSheet("background-color: red; color: white; border-radius: 4px; padding: 8px 16px;")
+        self.test_network_button.setMinimumWidth(100)
         
         self.export_excel_button = QPushButton("导出Excel")
         self.export_excel_button.clicked.connect(self.export_excel)
         self.export_excel_button.setEnabled(False)
+        self.export_excel_button.setMinimumWidth(100)
         
         self.export_csv_button = QPushButton("导出CSV")
         self.export_csv_button.clicked.connect(self.export_csv)
         self.export_csv_button.setEnabled(False)
+        self.export_csv_button.setMinimumWidth(100)
         
         self.clear_button = QPushButton("清空结果")
         self.clear_button.clicked.connect(self.clear_results)
+        self.clear_button.setMinimumWidth(100)
         
         self.help_button = QPushButton("使用说明")
         self.help_button.clicked.connect(self.show_help)
+        self.help_button.setMinimumWidth(100)
         
         # 创建自动盯票按钮
         self.auto_track_button = QPushButton("自动盯票")
         self.auto_track_button.clicked.connect(self.show_auto_track_dialog)
+        self.auto_track_button.setMinimumWidth(100)
         
         # 创建查询次数显示标签
         self.query_count_label = QLabel("查询次数: 0")
-        self.query_count_label.setStyleSheet("font-weight: bold; color: blue;")
+        self.query_count_label.setStyleSheet("font-weight: bold; color: #1E88E5; font-size: 14px;")
         
         self.clear_logs_button = QPushButton("清理日志")
         self.clear_logs_button.clicked.connect(self.clear_logs)
         # 初始设置为灰色不可选状态
         self.clear_logs_button.setEnabled(False)
-        self.clear_logs_button.setStyleSheet("background-color: gray; color: white;")
+        self.clear_logs_button.setStyleSheet("background-color: gray; color: white; border-radius: 4px; padding: 8px 16px;")
+        self.clear_logs_button.setMinimumWidth(100)
         
         # 创建夜晚模式切换按钮
         self.night_mode_button = QPushButton("夜晚模式")
         self.night_mode_button.clicked.connect(self.toggle_night_mode)
         # 初始化为白天模式
         self.is_night_mode = False
+        self.night_mode_button.setMinimumWidth(100)
         
-        self.auto_track_button = QPushButton("自动盯票")
-        self.auto_track_button.clicked.connect(self.show_auto_track_dialog)
+        # 添加按钮到布局
+        button_layout1.addWidget(self.query_button)
+        button_layout1.addSpacing(10)
+        button_layout1.addWidget(self.schedule_button)
+        button_layout1.addSpacing(10)
+        button_layout1.addWidget(self.transfer_button)
+        button_layout1.addSpacing(10)
+        button_layout1.addWidget(self.auto_track_button)
+        button_layout1.addSpacing(10)
+        button_layout1.addWidget(self.test_network_button)
         
-        # 添加到布局
-        control_layout.addWidget(self.query_button)
-        control_layout.addWidget(self.schedule_button)
-        control_layout.addWidget(self.transfer_button)
-        control_layout.addWidget(self.auto_track_button)
-        control_layout.addWidget(self.test_network_button)
-        control_layout.addWidget(self.export_excel_button)
-        control_layout.addWidget(self.export_csv_button)
-        control_layout.addWidget(self.clear_button)
-        control_layout.addWidget(self.help_button)
-        control_layout.addWidget(self.clear_logs_button)
-        control_layout.addWidget(self.night_mode_button)
-        control_layout.addStretch()
-        control_layout.addWidget(self.query_count_label)
+        button_layout2.addWidget(self.export_excel_button)
+        button_layout2.addSpacing(10)
+        button_layout2.addWidget(self.export_csv_button)
+        button_layout2.addSpacing(10)
+        button_layout2.addWidget(self.clear_button)
+        button_layout2.addSpacing(10)
+        button_layout2.addWidget(self.help_button)
+        button_layout2.addSpacing(10)
+        button_layout2.addWidget(self.night_mode_button)
+        
+        info_layout.addWidget(self.query_count_label)
+        info_layout.addStretch()
+        info_layout.addWidget(self.clear_logs_button)
+        
+        # 添加到主控制布局
+        control_layout.addLayout(button_layout1)
+        control_layout.addLayout(button_layout2)
+        control_layout.addLayout(info_layout)
         
         control_group.setLayout(control_layout)
         layout.addWidget(control_group)
@@ -363,6 +608,11 @@ class MainWindow(QMainWindow):
         for station in stations:
             self.start_station.addItem(station)
         
+        # 更新站点下拉框的自动补全
+        start_station_completer = QCompleter(stations)
+        start_station_completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.start_station.setCompleter(start_station_completer)
+        
         logger.info(f"更新了出发城市 {city_name} 的站点列表，共 {len(stations)} 个站点")
     
     def on_end_city_changed(self, city_name):
@@ -379,6 +629,11 @@ class MainWindow(QMainWindow):
         stations = station_parser.get_stations_by_city(city_name)
         for station in stations:
             self.end_station.addItem(station)
+        
+        # 更新站点下拉框的自动补全
+        end_station_completer = QCompleter(stations)
+        end_station_completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.end_station.setCompleter(end_station_completer)
         
         logger.info(f"更新了目的城市 {city_name} 的站点列表，共 {len(stations)} 个站点")
     
@@ -544,6 +799,50 @@ class MainWindow(QMainWindow):
                             "站票": fields[26] if len(fields) > 26 and fields[26] != "" else "无"
                         }
                         
+                        # 解析价格信息
+                        prices = {}
+                        # 注意：12306 API的价格信息格式可能会变化，这里使用更可靠的解析方式
+                        # 尝试从不同位置获取价格信息
+                        
+                        # 调试：打印字段长度和部分字段值
+                        logger.debug(f"字段长度: {len(fields)}")
+                        if len(fields) > 45:
+                            logger.debug(f"字段36-45: {fields[36:46]}")
+                        
+                        # 常见的价格字段位置（根据实际API返回调整）
+                        # 注意：不同座位类型的价格字段位置可能不同
+                        # 尝试从多个可能的位置获取价格信息
+                        possible_price_positions = {
+                            "硬座": [36, 42],
+                            "硬卧": [37, 43],
+                            "软卧": [38, 44],
+                            "二等座": [39, 45],
+                            "一等座": [40, 46],
+                            "商务座": [41, 47]
+                        }
+                        
+                        # 解析价格信息
+                        for seat_type, positions in possible_price_positions.items():
+                            for pos in positions:
+                                if pos < len(fields):
+                                    price = fields[pos]
+                                    if price and price != "" and price != "0":
+                                        # 尝试解析价格为数字
+                                        try:
+                                            # 提取数字部分
+                                            import re
+                                            clean_price = re.sub(r'[^0-9]', '', price)
+                                            if clean_price:
+                                                price_int = int(clean_price)
+                                                # 检查价格是否合理（10-10000之间）
+                                                if 10 <= price_int <= 10000:
+                                                    prices[seat_type] = str(price_int)
+                                                    break
+                                        except:
+                                            pass
+                            if seat_type not in prices:
+                                prices[seat_type] = "-"
+                        
                         ticket_info = {
                             "train_number": train_number,
                             "start_time": start_time,
@@ -552,7 +851,8 @@ class MainWindow(QMainWindow):
                             "start_station": start_station_name,
                             "end_station": end_station_name,
                             "date": query_date,
-                            "remaining_tickets": remaining_tickets
+                            "remaining_tickets": remaining_tickets,
+                            "prices": prices
                         }
                         
                         tickets.append(ticket_info)
@@ -734,7 +1034,8 @@ class MainWindow(QMainWindow):
             # 保存结果
             self.query_results = tickets
             
-            # 清空表格
+            # 清空表格并释放控件
+            self.clear_table_widgets()
             self.result_table.setRowCount(0)
             logger.info("表格已清空")
             
@@ -812,15 +1113,19 @@ class MainWindow(QMainWindow):
                     remaining_lines = []
                     for k, v in ticket["remaining_tickets"].items():
                         if v:
+                            # 获取对应座位的价格
+                            price = ticket.get("prices", {}).get(k, "-")
+                            price_str = f" (¥{price})" if price != "-" else ""
+                            
                             if v == "有":
                                 # 使用更显眼的样式突出显示有票的座位
-                                line = f"<span style='font-weight: bold; font-size: 20px; color: green;'>{k}: {v}</span>"
+                                line = f"<span style='font-weight: bold; font-size: 20px; color: green;'>{k}: {v}{price_str}</span>"
                             elif v != "无":
                                 # 显示有具体数量的余票
-                                line = f"<span style='font-weight: bold; font-size: 20px; color: blue;'>{k}: {v}</span>"
+                                line = f"<span style='font-weight: bold; font-size: 20px; color: blue;'>{k}: {v}{price_str}</span>"
                             else:
                                 # 无票信息使用灰色，不突出显示
-                                line = f"<span style='font-size: 20px; color: gray;'>{k}: {v}</span>"
+                                line = f"<span style='font-size: 20px; color: gray;'>{k}: {v}{price_str}</span>"
                             remaining_lines.append(line)
                     remaining_info = "<br>" + "<br>".join(remaining_lines)
                     # 创建文本编辑框作为单元格widget，支持HTML
@@ -889,7 +1194,8 @@ class MainWindow(QMainWindow):
             # 保存结果
             self.query_results = transfer_plans
             
-            # 清空表格
+            # 清空表格并释放控件
+            self.clear_table_widgets()
             self.result_table.setRowCount(0)
             logger.info("表格已清空")
             
@@ -990,15 +1296,19 @@ class MainWindow(QMainWindow):
                     remaining_lines = []
                     for k, v in transfer["remaining_tickets"].items():
                         if v:
+                            # 获取对应座位的价格
+                            price = transfer.get("prices", {}).get(k, "-")
+                            price_str = f" (¥{price})" if price != "-" else ""
+                            
                             if v == "有":
                                 # 使用更显眼的样式突出显示有票的座位
-                                line = f"<span style='font-weight: bold; font-size: 20px; color: green;'>{k}: {v}</span>"
+                                line = f"<span style='font-weight: bold; font-size: 20px; color: green;'>{k}: {v}{price_str}</span>"
                             elif v != "无":
                                 # 显示有具体数量的余票
-                                line = f"<span style='font-weight: bold; font-size: 20px; color: blue;'>{k}: {v}</span>"
+                                line = f"<span style='font-weight: bold; font-size: 20px; color: blue;'>{k}: {v}{price_str}</span>"
                             else:
                                 # 无票信息使用灰色，不突出显示
-                                line = f"<span style='font-size: 20px; color: gray;'>{k}: {v}</span>"
+                                line = f"<span style='font-size: 20px; color: gray;'>{k}: {v}{price_str}</span>"
                             remaining_lines.append(line)
                     remaining_info = "<br>" + "<br>".join(remaining_lines)
                     # 创建文本编辑框作为单元格widget，支持HTML
@@ -1113,10 +1423,30 @@ class MainWindow(QMainWindow):
                 logger.error(f"导出CSV失败: {e}")
                 QMessageBox.error(self, "错误", f"导出失败: {str(e)}")
     
+    def clear_table_widgets(self):
+        """
+        清空表格中的所有控件，释放内存
+        """
+        try:
+            # 遍历所有行和列，删除单元格中的控件
+            for row in range(self.result_table.rowCount()):
+                for col in range(self.result_table.columnCount()):
+                    # 检查是否有控件
+                    widget = self.result_table.cellWidget(row, col)
+                    if widget:
+                        # 移除控件
+                        self.result_table.setCellWidget(row, col, None)
+                        # 显式删除控件
+                        widget.deleteLater()
+            logger.info("表格控件已清空")
+        except Exception as e:
+            logger.error(f"清空表格控件失败: {e}")
+    
     def clear_results(self):
         """
         清空结果
         """
+        self.clear_table_widgets()
         self.result_table.setRowCount(0)
         self.query_results = []
         self.export_excel_button.setEnabled(False)
@@ -1268,14 +1598,23 @@ class MainWindow(QMainWindow):
         interval_group = QGroupBox("查询间隔设置")
         interval_layout = QHBoxLayout()
         
-        interval_label = QLabel("查询间隔（秒）:")
-        self.interval_spinbox = QSpinBox()
-        self.interval_spinbox.setMinimum(30)  # 自动查询间隔不能低于30秒
-        self.interval_spinbox.setMaximum(300)
-        self.interval_spinbox.setValue(max(self.auto_track_config.get('interval', 60), 30))  # 确保当前值不低于30秒
+        min_interval_label = QLabel("最小间隔（秒）:")
+        self.min_interval_spinbox = QSpinBox()
+        self.min_interval_spinbox.setMinimum(30)  # 自动查询间隔不能低于30秒
+        self.min_interval_spinbox.setMaximum(300)
+        self.min_interval_spinbox.setValue(max(self.auto_track_config.get('min_interval', 30), 30))  # 确保当前值不低于30秒
         
-        interval_layout.addWidget(interval_label)
-        interval_layout.addWidget(self.interval_spinbox)
+        max_interval_label = QLabel("最大间隔（秒）:")
+        self.max_interval_spinbox = QSpinBox()
+        self.max_interval_spinbox.setMinimum(30)  # 自动查询间隔不能低于30秒
+        self.max_interval_spinbox.setMaximum(300)
+        self.max_interval_spinbox.setValue(max(self.auto_track_config.get('max_interval', 60), 30))  # 确保当前值不低于30秒
+        
+        interval_layout.addWidget(min_interval_label)
+        interval_layout.addWidget(self.min_interval_spinbox)
+        interval_layout.addSpacing(20)
+        interval_layout.addWidget(max_interval_label)
+        interval_layout.addWidget(self.max_interval_spinbox)
         interval_layout.addStretch()
         
         interval_group.setLayout(interval_layout)
@@ -1630,11 +1969,13 @@ class MainWindow(QMainWindow):
                     if train_number_item:
                         selected_trains.append(train_number_item.text())
         
-        # 获取查询间隔
-        interval = self.interval_spinbox.value()
+        # 获取查询间隔范围
+        min_interval = self.min_interval_spinbox.value()
+        max_interval = self.max_interval_spinbox.value()
         
-        # 确保查询间隔不低于30秒，防止恶意攻击12306服务器
-        interval = max(interval, 30)
+        # 确保最小间隔不低于30秒，防止恶意攻击12306服务器
+        min_interval = max(min_interval, 30)
+        max_interval = max(max_interval, min_interval)  # 确保最大间隔不小于最小间隔
         
         # 验证选择
         if not selected_train_types:
@@ -1671,7 +2012,8 @@ class MainWindow(QMainWindow):
         self.auto_track_config = {
             'train_types': selected_train_types,
             'seat_classes': selected_seat_classes,
-            'interval': interval,
+            'min_interval': min_interval,
+            'max_interval': max_interval,
             'start_station': start_station,
             'end_station': end_station,
             'query_date': query_date,
@@ -1697,7 +2039,7 @@ class MainWindow(QMainWindow):
         self.auto_track_running = True
         self.auto_track_thread = threading.Thread(
             target=self.auto_track_task,
-            args=(start_station, end_station, query_date, selected_train_types, selected_seat_classes, interval, selected_trains, email_alert, email_address, email_password)
+            args=(start_station, end_station, query_date, selected_train_types, selected_seat_classes, min_interval, max_interval, selected_trains, email_alert, email_address, email_password)
         )
         self.auto_track_thread.daemon = True
         self.auto_track_thread.start()
@@ -1706,7 +2048,7 @@ class MainWindow(QMainWindow):
         self.update_auto_track_status()
         
         # 显示提示
-        message = f"自动盯票已启动\n查询间隔: {interval}秒\n监控车类型: {', '.join(selected_train_types)}\n监控座位等级: {', '.join(selected_seat_classes)}"
+        message = f"自动盯票已启动\n查询间隔: {min_interval}-{max_interval}秒（随机）\n监控车类型: {', '.join(selected_train_types)}\n监控座位等级: {', '.join(selected_seat_classes)}"
         if selected_trains:
             message += f"\n监控车次: {', '.join(selected_trains)}"
         else:
@@ -1759,8 +2101,9 @@ class MainWindow(QMainWindow):
         # 更新自动盯票状态标签
         if hasattr(self, 'auto_track_status_label'):
             if self.auto_track_running:
-                interval = self.auto_track_config.get('interval', 60)
-                self.auto_track_status_label.setText(f"自动盯票: 运行中 ({interval}秒)")
+                min_interval = self.auto_track_config.get('min_interval', 30)
+                max_interval = self.auto_track_config.get('max_interval', 60)
+                self.auto_track_status_label.setText(f"自动盯票: 运行中 ({min_interval}-{max_interval}秒随机)")
                 self.auto_track_status_label.setStyleSheet("color: green;")
             else:
                 self.auto_track_status_label.setText("自动盯票: 未启动")
@@ -1768,7 +2111,7 @@ class MainWindow(QMainWindow):
         else:
             logger.error("auto_track_status_label 不存在")
     
-    def auto_track_task(self, start_station, end_station, query_date, train_types, seat_classes, interval, selected_trains, email_alert, email_address, email_password):
+    def auto_track_task(self, start_station, end_station, query_date, train_types, seat_classes, min_interval, max_interval, selected_trains, email_alert, email_address, email_password):
         """
         自动盯票任务
         
@@ -1778,13 +2121,15 @@ class MainWindow(QMainWindow):
             query_date: 查询日期
             train_types: 车类型列表
             seat_classes: 座位等级列表
-            interval: 查询间隔（秒）
+            min_interval: 最小查询间隔（秒）
+            max_interval: 最大查询间隔（秒）
             selected_trains: 选中的车次列表
             email_alert: 是否启用邮箱提醒
             email_address: 邮箱地址
             email_password: 邮箱授权码
         """
         import smtplib
+        import random
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
         from email.header import Header
@@ -1799,6 +2144,7 @@ class MainWindow(QMainWindow):
             if not email_alert or not email_address or not email_password:
                 return
             
+            server = None
             try:
                 # 邮件服务器配置
                 smtp_server = "smtp.qq.com"  # 默认使用QQ邮箱服务器
@@ -1829,11 +2175,16 @@ class MainWindow(QMainWindow):
                 server.starttls()
                 server.login(email_address, email_password)
                 server.send_message(msg)
-                server.quit()
-                
                 logger.info("邮件通知发送成功")
             except Exception as e:
                 logger.error(f"发送邮件通知失败: {e}")
+            finally:
+                # 确保服务器连接被关闭
+                if server:
+                    try:
+                        server.quit()
+                    except:
+                        pass
         logger.info(f"自动盯票任务已启动: {start_station} -> {end_station}, {query_date}")
         self.update_status.emit(f"自动盯票已启动: {start_station} -> {end_station}")
         
@@ -1854,7 +2205,9 @@ class MainWindow(QMainWindow):
                 # 检查站点编码是否有效
                 if from_station == start_station or to_station == end_station:
                     logger.error(f"站点编码无效: {start_station} -> {end_station}")
-                    time.sleep(interval)
+                    # 随机选择等待时间
+                    random_interval = random.randint(min_interval, max_interval)
+                    time.sleep(random_interval)
                     continue
                 
                 # 构建查询参数
@@ -1969,8 +2322,12 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 logger.error(f"自动盯票任务异常: {e}")
             
+            # 随机选择等待时间
+            random_interval = random.randint(min_interval, max_interval)
+            logger.info(f"本次查询完成，将在 {random_interval} 秒后进行下一次查询")
+            
             # 等待下一次查询
-            for _ in range(interval):
+            for _ in range(random_interval):
                 if not self.auto_track_running:
                     break
                 time.sleep(1)
@@ -2262,7 +2619,8 @@ class MainWindow(QMainWindow):
             checkbox.setEnabled(False)
         
         # 禁用查询间隔设置
-        self.interval_spinbox.setEnabled(False)
+        self.min_interval_spinbox.setEnabled(False)
+        self.max_interval_spinbox.setEnabled(False)
         
         # 禁用邮箱相关控件
         self.email_alert_checkbox.setEnabled(False)
@@ -2287,7 +2645,8 @@ class MainWindow(QMainWindow):
             checkbox.setEnabled(True)
         
         # 启用查询间隔设置
-        self.interval_spinbox.setEnabled(True)
+        self.min_interval_spinbox.setEnabled(True)
+        self.max_interval_spinbox.setEnabled(True)
         
         # 启用邮箱相关控件
         self.email_alert_checkbox.setEnabled(True)

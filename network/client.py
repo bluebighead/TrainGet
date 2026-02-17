@@ -19,16 +19,72 @@ class NetworkClient:
     
     # 常见的User-Agent列表（更丰富、更真实）
     USER_AGENTS = [
+        # Windows Chrome
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+        
+        # Windows Firefox
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:119.0) Gecko/20100101 Firefox/119.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:118.0) Gecko/20100101 Firefox/118.0",
+        
+        # Windows Edge
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.0.0",
-        "Mozilla/5.0 (Linux; Android 13; SM-G998U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.0.0",
+        
+        # Mac Safari
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15",
+        
+        # Mac Chrome
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+        
+        # Mac Firefox
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2; rv:121.0) Gecko/20100101 Firefox/121.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1; rv:120.0) Gecko/20100101 Firefox/120.0",
+        
+        # Linux Chrome
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
+        
+        # Android Chrome
+        "Mozilla/5.0 (Linux; Android 13; SM-G998U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36",
+        "Mozilla/5.0 (Linux; Android 12; SM-G991U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Mobile Safari/537.36",
+        "Mozilla/5.0 (Linux; Android 11; SM-G981U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Mobile Safari/537.36",
+        "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36",
+        
+        # Android Firefox
+        "Mozilla/5.0 (Android 13; Mobile; rv:121.0) Gecko/121.0 Firefox/121.0",
+        "Mozilla/5.0 (Android 12; Mobile; rv:120.0) Gecko/120.0 Firefox/120.0",
+        
+        # iOS Safari
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (iPad; CPU OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
+        
+        # iOS Chrome
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) CriOS/119.0.6045.169 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (iPad; CPU OS 17_1 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) CriOS/118.0.5993.113 Mobile/15E148 Safari/604.1",
+        
+        # Opera
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 OPR/105.0.0.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 OPR/104.0.0.0",
+        
+        # Vivaldi
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Vivaldi/6.5",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Vivaldi/6.4"
     ]
     
     def __init__(self, base_url="https://kyfw.12306.cn", timeout=30):
@@ -430,6 +486,42 @@ class NetworkClient:
                                 "站票": first_fields[26] if len(first_fields) > 26 and first_fields[26] != "" else "无"
                             }
                             
+                            # 解析价格信息
+                            first_prices = {}
+                            # 常见的价格字段位置（根据实际API返回调整）
+                            # 注意：不同座位类型的价格字段位置可能不同
+                            # 尝试从多个可能的位置获取价格信息
+                            possible_price_positions = {
+                                "硬座": [36, 42],
+                                "硬卧": [37, 43],
+                                "软卧": [38, 44],
+                                "二等座": [39, 45],
+                                "一等座": [40, 46],
+                                "商务座": [41, 47]
+                            }
+                            
+                            # 解析价格信息
+                            for seat_type, positions in possible_price_positions.items():
+                                for pos in positions:
+                                    if pos < len(first_fields):
+                                        price = first_fields[pos]
+                                        if price and price != "" and price != "0":
+                                            # 尝试解析价格为数字
+                                            try:
+                                                # 提取数字部分
+                                                import re
+                                                clean_price = re.sub(r'[^0-9]', '', price)
+                                                if clean_price:
+                                                    price_int = int(clean_price)
+                                                    # 检查价格是否合理（10-10000之间）
+                                                    if 10 <= price_int <= 10000:
+                                                        first_prices[seat_type] = str(price_int)
+                                                        break
+                                            except:
+                                                pass
+                                if seat_type not in first_prices:
+                                    first_prices[seat_type] = "-"
+                            
                             for second_train in dest_result_list:
                                 second_fields = second_train.split("|")
                                 if len(second_fields) < 30:
@@ -466,6 +558,42 @@ class NetworkClient:
                                         "站票": second_fields[26] if len(second_fields) > 26 and second_fields[26] != "" else "无"
                                     }
                                     
+                                    # 解析价格信息
+                                    second_prices = {}
+                                    # 常见的价格字段位置（根据实际API返回调整）
+                                    # 注意：不同座位类型的价格字段位置可能不同
+                                    # 尝试从多个可能的位置获取价格信息
+                                    possible_price_positions = {
+                                        "硬座": [36, 42],
+                                        "硬卧": [37, 43],
+                                        "软卧": [38, 44],
+                                        "二等座": [39, 45],
+                                        "一等座": [40, 46],
+                                        "商务座": [41, 47]
+                                    }
+                                    
+                                    # 解析价格信息
+                                    for seat_type, positions in possible_price_positions.items():
+                                        for pos in positions:
+                                            if pos < len(second_fields):
+                                                price = second_fields[pos]
+                                                if price and price != "" and price != "0":
+                                                    # 尝试解析价格为数字
+                                                    try:
+                                                        # 提取数字部分
+                                                        import re
+                                                        clean_price = re.sub(r'[^0-9]', '', price)
+                                                        if clean_price:
+                                                            price_int = int(clean_price)
+                                                            # 检查价格是否合理（10-10000之间）
+                                                            if 10 <= price_int <= 10000:
+                                                                second_prices[seat_type] = str(price_int)
+                                                                break
+                                                    except:
+                                                        pass
+                                        if seat_type not in second_prices:
+                                            second_prices[seat_type] = "-"
+                                        
                                     # 计算总历时
                                     first_duration = first_fields[10]
                                     second_duration = second_fields[10]
@@ -497,7 +625,8 @@ class NetworkClient:
                                                 "start_time": first_start_time,
                                                 "end_time": first_end_time,
                                                 "duration": first_duration,
-                                                "remaining_tickets": first_remaining_tickets
+                                                "remaining_tickets": first_remaining_tickets,
+                                                "prices": first_prices
                                             },
                                             {
                                                 "train_number": second_train_number,
@@ -506,7 +635,8 @@ class NetworkClient:
                                                 "start_time": second_start_time,
                                                 "end_time": second_end_time,
                                                 "duration": second_duration,
-                                                "remaining_tickets": second_remaining_tickets
+                                                "remaining_tickets": second_remaining_tickets,
+                                                "prices": second_prices
                                             }
                                         ],
                                         "total_duration": total_duration,
